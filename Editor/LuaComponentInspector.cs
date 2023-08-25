@@ -5,12 +5,12 @@ namespace Popcron.LuaScript
     [CustomEditor(typeof(LuaComponent), true)]
     public class LuaComponentInspector : Editor
     {
-        private SerializedProperty mode;
-        private SerializedProperty text;
-        private SerializedProperty asset;
-        private SerializedProperty initialData;
+        protected SerializedProperty mode;
+        protected SerializedProperty text;
+        protected SerializedProperty asset;
+        protected SerializedProperty initialData;
 
-        private void OnEnable()
+        protected virtual void OnEnable()
         {
             mode = serializedObject.FindProperty(LuaComponent.ModePropertyName);
             text = serializedObject.FindProperty(LuaComponent.TextPropertyName);
