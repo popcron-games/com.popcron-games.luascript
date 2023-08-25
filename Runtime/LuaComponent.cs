@@ -28,6 +28,9 @@ namespace Popcron.LuaScript
 
         private List<SerializedUnityObject> serializedUnityObjects = new();
         private List<SerializedData> serializedData = new();
+        private string? lastText;
+        private bool shouldReloadBecauseLiteralTextChange;
+        private float literalTextChangeTimer;
 
         public LuaScript? LuaScript { get; private set; }
 
@@ -51,9 +54,12 @@ namespace Popcron.LuaScript
 
         protected virtual void OnDisable()
         {
-            if (asset != null && mode == SourceMode.Asset)
+            if (mode == SourceMode.Asset)
             {
-                asset.OnModified -= OnModified;
+                if (asset != null)
+                {
+                    asset.OnModified -= OnModified;
+                }
             }
 
             if (LuaScript is not null)
@@ -62,6 +68,31 @@ namespace Popcron.LuaScript
                 SaveSerializedVariables(LuaScript);
                 LuaScript.Dispose();
                 LuaScript = null;
+            }
+        }
+
+        protected virtual void Update()
+        {
+            if (mode == SourceMode.Literal)
+            {
+                if (text != lastText)
+                {
+                    lastText = text;
+                    shouldReloadBecauseLiteralTextChange = true;
+                    literalTextChangeTimer = 1f;
+                }
+                else
+                {
+                    if (literalTextChangeTimer < 0 && shouldReloadBecauseLiteralTextChange)
+                    {
+                        shouldReloadBecauseLiteralTextChange = false;
+                        Reload();
+                    }
+                    else
+                    {
+                        literalTextChangeTimer -= Time.deltaTime;
+                    }
+                }
             }
         }
 
@@ -92,22 +123,22 @@ namespace Popcron.LuaScript
         {
             if (this != null)
             {
-                if (asset != null)
-                {
-                    Reload();
-                }
-                else
-                {
-                    OnDisable();
-                }
+                Reload();
             }
         }
 
         private LuaScript CreateLuaScript(string name)
         {
-            if (asset != null && mode == SourceMode.Asset)
+            if (mode == SourceMode.Asset)
             {
-                asset.OnModified += OnModified;
+                if (asset != null)
+                {
+                    asset.OnModified += OnModified;
+                }
+            }
+            else
+            {
+
             }
 
             ReadOnlySpan<char> sourceCode = GetSourceCode();

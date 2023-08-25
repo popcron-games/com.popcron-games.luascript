@@ -33,13 +33,16 @@ public static int Mutate(int a, int b)
 ```
 
 ## LuaComponent
-A basic component that will call functions with these tags:
-- Awake
-- Start
-- OnEnable
-- OnDisable
+![custom component](https://media.discordapp.net/attachments/860402958692122645/1144694349171531826/image.png)
 
-and will have `transform` and `gameObject` accessible from scripts.
+- A basic component that will call functions with these tags:
+  - Awake
+  - Start
+  - OnEnable
+  - OnDisable
+  - no Update or FixedUpdate
+- will have `transform` and `gameObject` accessible from scripts
+- will automatically reload itself when its asset changes in editor or literal text changes in both editor and build
 
 To add extra functionality, inherit from `LuaComponent` and override `OnCreated()` to insert functions from C# with name and `MethodInfo` parameters:
 ```cs
