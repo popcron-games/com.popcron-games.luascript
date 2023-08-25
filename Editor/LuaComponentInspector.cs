@@ -8,14 +8,12 @@ namespace Popcron.LuaScript
         protected SerializedProperty mode;
         protected SerializedProperty text;
         protected SerializedProperty asset;
-        protected SerializedProperty initialData;
 
         protected virtual void OnEnable()
         {
             mode = serializedObject.FindProperty(LuaComponent.ModePropertyName);
             text = serializedObject.FindProperty(LuaComponent.TextPropertyName);
             asset = serializedObject.FindProperty(LuaComponent.AssetPropertyName);
-            initialData = serializedObject.FindProperty(LuaComponent.InitialDataPropertyName);
         }
 
         public override void OnInspectorGUI()
@@ -37,7 +35,6 @@ namespace Popcron.LuaScript
                 EditorGUILayout.LabelField("Unknown mode type");
             }
 
-            EditorGUILayout.PropertyField(initialData, true);
             serializedObject.ApplyModifiedProperties();
         }
     }

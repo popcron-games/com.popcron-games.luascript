@@ -12,7 +12,6 @@ namespace Popcron.LuaScript
         public const string ModePropertyName = nameof(mode);
         public const string TextPropertyName = nameof(text);
         public const string AssetPropertyName = nameof(asset);
-        public const string InitialDataPropertyName = nameof(initialData);
 
         [SerializeField]
         private SourceMode mode;
@@ -23,11 +22,8 @@ namespace Popcron.LuaScript
         [SerializeField]
         private LuaScriptAsset? asset;
 
-        [SerializeField]
-        private InitialData[] initialData = { };
-
         private List<SerializedUnityObject> serializedUnityObjects = new();
-        private List<SerializedData> serializedData = new();
+        private List<SerializedGenericData> serializedData = new();
         private string? lastText;
         private bool shouldReloadBecauseLiteralTextChange;
         private float literalTextChangeTimer;
@@ -78,20 +74,26 @@ namespace Popcron.LuaScript
                 if (text != lastText)
                 {
                     lastText = text;
-                    shouldReloadBecauseLiteralTextChange = true;
-                    literalTextChangeTimer = 1f;
-                }
-                else
-                {
-                    if (literalTextChangeTimer < 0 && shouldReloadBecauseLiteralTextChange)
+                    if (Application.isPlaying)
                     {
-                        shouldReloadBecauseLiteralTextChange = false;
-                        Reload();
+                        literalTextChangeTimer = 1f;
                     }
                     else
                     {
-                        literalTextChangeTimer -= Time.deltaTime;
+                        literalTextChangeTimer = 0f;
                     }
+
+                    shouldReloadBecauseLiteralTextChange = true;
+                }
+
+                if (literalTextChangeTimer <= 0 && shouldReloadBecauseLiteralTextChange)
+                {
+                    shouldReloadBecauseLiteralTextChange = false;
+                    Reload();
+                }
+                else
+                {
+                    literalTextChangeTimer -= Time.deltaTime;
                 }
             }
         }
@@ -143,26 +145,20 @@ namespace Popcron.LuaScript
 
             ReadOnlySpan<char> sourceCode = GetSourceCode();
             LuaScript luaScript = new LuaScript(name, sourceCode);
-            luaScript.SetObject("transform", transform);
-            luaScript.SetObject("gameObject", gameObject);
-            foreach (InitialData initialData in initialData)
-            {
-                luaScript.SetObject(initialData.name, initialData.value);
-            }
-
             OnCreated(luaScript, sourceCode);
             return luaScript;
         }
 
         protected virtual void OnCreated(LuaScript luaScript, ReadOnlySpan<char> sourceCode)
         {
-
+            luaScript.SetObject("transform", transform);
+            luaScript.SetObject("gameObject", gameObject);
         }
 
         /// <summary>
         /// Reloads this component's <see cref="Popcron.LuaScript.LuaScript"/> instance.
         /// </summary>
-        public void Reload()
+        public virtual void Reload()
         {
             OnDisable();
             OnEnable();
@@ -177,10 +173,9 @@ namespace Popcron.LuaScript
 
             serializedUnityObjects.Clear();
 
-            foreach (SerializedData data in serializedData)
+            foreach (SerializedGenericData data in serializedData)
             {
-                object? newObj = JsonConvert.DeserializeObject(data.json, Type.GetType(data.aqn));
-                luaScript.SetObject(data.name, newObj);
+                luaScript.SetObject(data.name, data.Value);
             }
 
             serializedData.Clear();
@@ -203,10 +198,7 @@ namespace Popcron.LuaScript
                 }
                 else if (value != null)
                 {
-                    JsonSerializerSettings settings = new JsonSerializerSettings();
-                    settings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                    string json = JsonConvert.SerializeObject(value, Formatting.None, settings);
-                    serializedData.Add(new SerializedData(name, value.GetType().AssemblyQualifiedName, json));
+                    serializedData.Add(new SerializedGenericData(name, value));
                 }
             }
         }
@@ -241,13 +233,6 @@ namespace Popcron.LuaScript
         }
 
         [Serializable]
-        public struct InitialData
-        {
-            public string name;
-            public Object value;
-        }
-
-        [Serializable]
         public class SerializedUnityObject
         {
             public string name;
@@ -261,17 +246,28 @@ namespace Popcron.LuaScript
         }
 
         [Serializable]
-        public class SerializedData
+        public class SerializedGenericData
         {
+            private static readonly JsonSerializerSettings settings = new JsonSerializerSettings() { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
+
             public string name;
             public string aqn;
             public string json;
 
-            public SerializedData(string name, string aqn, string json)
+            public object? Value => JsonConvert.DeserializeObject(json, Type.GetType(aqn));
+
+            public SerializedGenericData(string name, string aqn, string json)
             {
                 this.name = name;
                 this.aqn = aqn;
                 this.json = json;
+            }
+
+            public SerializedGenericData(string name, object value)
+            {
+                this.name = name;
+                aqn = value.GetType().AssemblyQualifiedName;
+                json = JsonConvert.SerializeObject(value, Formatting.None, settings);
             }
         }
     }
