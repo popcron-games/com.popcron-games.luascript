@@ -1,0 +1,12 @@
+{
+  "name": "com.popcron-games.luascript",
+  "displayName": "Popcron Lua Scripting",
+  "version": "1.0.0",
+  "author": {
+    "name": "popcron"
+  },
+  "dependencies": {
+    "com.nlua.nlua": "1.0.0",
+    "com.unity.nuget.newtonsoft-json": "1.0.0"
+  }
+}
