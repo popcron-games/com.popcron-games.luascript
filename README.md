@@ -1,8 +1,6 @@
 ## Dependencies
-This package requires that [Nlua](https://github.com/NLua/Nlua) is available, and `com.unity.nuget.newtonsoft-json` at least version 1.0.0
-(Unity will take care of newtonsoft but not NLua, so you'll have to add it manually)
-
-Alternatively, [this](https://github.com/popcron-games/com.nlua.nlua) repo is available as a git Unity package for NLua.
+- Requires [Nlua](https://github.com/NLua/Nlua), alternatively [this](https://github.com/popcron-games/com.nlua.nlua) Unity package repo for NLua
+- and `com.unity.nuget.newtonsoft-json` at least version 1.0.0 (Unity will take care of this one)
 
 ## LuaScript
 The object that contains NLua's `Lua` state object, also provides these:
