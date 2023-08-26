@@ -7,7 +7,6 @@
     "url": "https://github.com/popcron-games/com.popcron-games.luascript"
   },
   "dependencies": {
-    "com.nlua.nlua": "1.0.0",
     "com.unity.nuget.newtonsoft-json": "1.0.0"
   },
   "description": "Adds neater interfaces for working with NLua in Unity"
