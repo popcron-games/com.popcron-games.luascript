@@ -22,8 +22,8 @@ namespace Popcron.LuaScript
         [SerializeField]
         private LuaScriptAsset? asset;
 
-        private List<SerializedUnityObject> serializedUnityObjects = new();
-        private List<SerializedGenericData> serializedData = new();
+        private List<SerializedUnityObject> serializedUnityObjects = new List<SerializedUnityObject>();
+        private List<SerializedGenericData> serializedData = new List<SerializedGenericData>();
         private string? lastText;
         private bool shouldReloadBecauseLiteralTextChange;
         private float literalTextChangeTimer;
@@ -33,19 +33,69 @@ namespace Popcron.LuaScript
         protected virtual void Awake()
         {
             LuaScript = CreateLuaScript(name);
-            LuaScript.CallWithTag("Awake");
+
+            bool isEditor = !Application.isPlaying;
+            if (LuaScript.TagToFuntions.TryGetValue(nameof(Awake), out HashSet<string>? functions))
+            {
+                foreach (string function in functions)
+                {
+                    if (LuaScript.HasTag(function, "EditorOnly"))
+                    {
+                        if (!isEditor)
+                        {
+                            continue;
+                        }
+                    }
+
+                    LuaScript.Call(function);
+                    break;
+                }
+            }
         }
 
         protected virtual void OnEnable()
         {
             if (LuaScript == null) LuaScript = CreateLuaScript(name);
             LoadSerializedVariables(LuaScript);
-            LuaScript.CallWithTag("OnEnable");
+
+            bool isEditor = !Application.isPlaying;
+            if (LuaScript.TagToFuntions.TryGetValue(nameof(OnEnable), out HashSet<string>? functions))
+            {
+                foreach (string function in functions)
+                {
+                    if (LuaScript.HasTag(function, "EditorOnly"))
+                    {
+                        if (!isEditor)
+                        {
+                            continue;
+                        }
+                    }
+
+                    LuaScript.Call(function);
+                    break;
+                }
+            }
         }
 
         protected virtual void Start()
         {
-            LuaScript?.CallWithTag("Start");
+            bool isEditor = !Application.isPlaying;
+            if (LuaScript.TagToFuntions.TryGetValue(nameof(Start), out HashSet<string>? functions))
+            {
+                foreach (string function in functions)
+                {
+                    if (LuaScript.HasTag(function, "EditorOnly"))
+                    {
+                        if (!isEditor)
+                        {
+                            continue;
+                        }
+                    }
+
+                    LuaScript.Call(function);
+                    break;
+                }
+            }
         }
 
         protected virtual void OnDisable()
@@ -58,9 +108,26 @@ namespace Popcron.LuaScript
                 }
             }
 
-            if (LuaScript is not null)
+            if (LuaScript != null)
             {
-                LuaScript.CallWithTag("OnDisable");
+                bool isEditor = !Application.isPlaying;
+                if (LuaScript.TagToFuntions.TryGetValue(nameof(OnDisable), out HashSet<string>? functions))
+                {
+                    foreach (string function in functions)
+                    {
+                        if (LuaScript.HasTag(function, "EditorOnly"))
+                        {
+                            if (!isEditor)
+                            {
+                                continue;
+                            }
+                        }
+
+                        LuaScript.Call(function);
+                        break;
+                    }
+                }
+
                 SaveSerializedVariables(LuaScript);
                 LuaScript.Dispose();
                 LuaScript = null;
@@ -76,7 +143,7 @@ namespace Popcron.LuaScript
                     lastText = text;
                     if (Application.isPlaying)
                     {
-                        literalTextChangeTimer = 1f;
+                        literalTextChangeTimer = 1.4f;
                     }
                     else
                     {
@@ -96,6 +163,51 @@ namespace Popcron.LuaScript
                     literalTextChangeTimer -= Time.deltaTime;
                 }
             }
+
+            if (LuaScript != null)
+            {
+                bool isEditor = !Application.isPlaying;
+                if (LuaScript.TagToFuntions.TryGetValue(nameof(Update), out HashSet<string>? functions))
+                {
+                    foreach (string function in functions)
+                    {
+                        if (LuaScript.HasTag(function, "EditorOnly"))
+                        {
+                            if (!isEditor)
+                            {
+                                continue;
+                            }
+                        }
+
+                        LuaScript.Call(function);
+                        break;
+                    }
+                }
+            }
+        }
+
+        protected virtual void FixedUpdate()
+        {
+            if (LuaScript != null)
+            {
+                bool isEditor = !Application.isPlaying;
+                if (LuaScript.TagToFuntions.TryGetValue(nameof(FixedUpdate), out HashSet<string>? functions))
+                {
+                    foreach (string function in functions)
+                    {
+                        if (LuaScript.HasTag(function, "EditorOnly"))
+                        {
+                            if (!isEditor)
+                            {
+                                continue;
+                            }
+                        }
+
+                        LuaScript.Call(function);
+                        break;
+                    }
+                }
+            }
         }
 
         public ReadOnlySpan<char> GetSourceCode()
@@ -104,8 +216,6 @@ namespace Popcron.LuaScript
             {
                 if (asset == null)
                 {
-                    Debug.LogError("Missing asset reference", this);
-                    enabled = false;
                     return ReadOnlySpan<char>.Empty;
                 }
 
@@ -145,14 +255,15 @@ namespace Popcron.LuaScript
 
             ReadOnlySpan<char> sourceCode = GetSourceCode();
             LuaScript luaScript = new LuaScript(name, sourceCode);
+            luaScript.SetObject("transform", transform);
+            luaScript.SetObject("gameObject", gameObject);
             OnCreated(luaScript, sourceCode);
             return luaScript;
         }
 
         protected virtual void OnCreated(LuaScript luaScript, ReadOnlySpan<char> sourceCode)
         {
-            luaScript.SetObject("transform", transform);
-            luaScript.SetObject("gameObject", gameObject);
+
         }
 
         /// <summary>

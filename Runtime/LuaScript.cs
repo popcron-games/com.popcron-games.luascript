@@ -1,8 +1,7 @@
 ﻿#nullable enable
-using NLua;
+using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Text;
 using UnityEngine;
 
@@ -20,18 +19,21 @@ namespace Popcron.LuaScript
         private readonly Dictionary<string, HashSet<string>> functionToTags = new Dictionary<string, HashSet<string>>();
         private readonly Dictionary<string, HashSet<string>> tagToFunctions = new Dictionary<string, HashSet<string>>();
 
-        public Lua Interpreter { get; }
+        public Script Interpreter { get; }
         public ReadOnlySpan<char> Name => name.AsSpan();
         public IReadOnlyCollection<string> Tags => tags;
         public IReadOnlyCollection<string> Functions => functionNames;
+        public IReadOnlyDictionary<string, HashSet<string>> TagsOfFunctions => functionToTags;
+        public IReadOnlyDictionary<string, HashSet<string>> TagToFuntions => tagToFunctions;
 
         public LuaScript(string name, ReadOnlySpan<char> source, bool openLibs = true)
         {
             this.name = name;
-            Interpreter = GetNLuaState(source, openLibs);
+            Interpreter = Get(source, openLibs);
+            LuaScriptAPI.RegisterFunctions(this);
         }
 
-        private Lua GetNLuaState(ReadOnlySpan<char> sourceCode, bool openLibs)
+        private Script Get(ReadOnlySpan<char> sourceCode, bool openLibs)
         {
             string sourceCodeText = sourceCode.ToString();
             sourceCodeText = sourceCodeText.Replace("\r\n", "\n");
@@ -109,11 +111,12 @@ namespace Popcron.LuaScript
                 }
             }
 
-            Lua state = new Lua(openLibs);
+            Script state = new Script(CoreModules.Preset_Complete);
             state.DoString(sourceCodeBuilder.ToString());
             foreach ((string name, int parameterCount) function in functionDeclarations)
             {
-                functions.Add(function, state.GetFunction(function.name));
+                DynValue functionVal = state.Globals.Get(function.name);
+                functions.Add(function, new LuaFunction(function.name, functionVal, function.parameterCount));
                 functionNames.Add(function.name);
             }
 
@@ -133,11 +136,23 @@ namespace Popcron.LuaScript
             }
         }
 
+        public bool HasTag(string function, string tag)
+        {
+            if (functionToTags.TryGetValue(function, out HashSet<string> tags))
+            {
+                return tags.Contains(tag);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public object? Call(string functionName)
         {
             if (TryGetFunction(functionName, 0, out LuaFunction function))
             {
-                return function.Call();
+                return Interpreter.Call(function.functionVal);
             }
             else throw new NullReferenceException($"Function {functionName} without parameters was not found to call in {name}");
         }
@@ -146,7 +161,7 @@ namespace Popcron.LuaScript
         {
             if (TryGetFunction(functionName, 1, out LuaFunction function))
             {
-                return function.Call(p1);
+                return Interpreter.Call(function.functionVal, p1);
             }
             else throw new NullReferenceException($"Function {functionName} with 1 parameters was not found to call in {name}");
         }
@@ -155,7 +170,7 @@ namespace Popcron.LuaScript
         {
             if (TryGetFunction(functionName, 2, out LuaFunction function))
             {
-                return function.Call(p1, p2);
+                return Interpreter.Call(function.functionVal, p1, p2);
             }
             else throw new NullReferenceException($"Function {functionName} with 2 parameters was not found to call in {name}");
         }
@@ -164,7 +179,7 @@ namespace Popcron.LuaScript
         {
             if (TryGetFunction(functionName, 3, out LuaFunction function))
             {
-                return function.Call(p1, p2, p3);
+                return Interpreter.Call(function.functionVal, p1, p2, p3);
             }
             else throw new NullReferenceException($"Function {functionName} with 3 parameters was not found to call in {name}");
         }
@@ -173,7 +188,7 @@ namespace Popcron.LuaScript
         {
             if (TryGetFunction(functionName, 4, out LuaFunction function))
             {
-                return function.Call(p1, p2, p3, p4);
+                return Interpreter.Call(function.functionVal, p1, p2, p3, p4);
             }
             else throw new NullReferenceException($"Function {functionName} with 4 parameters was not found to call in {name}");
         }
@@ -184,7 +199,7 @@ namespace Popcron.LuaScript
             {
                 try
                 {
-                    function.Call();
+                    Interpreter.Call(function.functionVal);
                     return true;
                 }
                 catch (Exception ex)
@@ -202,7 +217,7 @@ namespace Popcron.LuaScript
             {
                 try
                 {
-                    function.Call(p1);
+                    Interpreter.Call(function.functionVal, p1);
                     return true;
                 }
                 catch (Exception ex)
@@ -220,7 +235,7 @@ namespace Popcron.LuaScript
             {
                 try
                 {
-                    function.Call(p1, p2);
+                    Interpreter.Call(function.functionVal, p1, p2);
                     return true;
                 }
                 catch (Exception ex)
@@ -238,7 +253,7 @@ namespace Popcron.LuaScript
             {
                 try
                 {
-                    function.Call(p1, p2, p3);
+                    Interpreter.Call(function.functionVal, p1, p2, p3);
                     return true;
                 }
                 catch (Exception ex)
@@ -256,7 +271,7 @@ namespace Popcron.LuaScript
             {
                 try
                 {
-                    function.Call(p1, p2, p3, p4);
+                    Interpreter.Call(function.functionVal, p1, p2, p3, p4);
                     return true;
                 }
                 catch (Exception ex)
@@ -270,22 +285,37 @@ namespace Popcron.LuaScript
 
         public object? GetObject(string fullPath)
         {
-            return Interpreter[fullPath];
+            return Interpreter.Globals[fullPath];
         }
 
         public void SetObject(string fullPath, object? obj)
         {
-            Interpreter[fullPath] = obj;
+            Interpreter.Globals[fullPath] = obj;
         }
 
-        public void RegisterFunction(string name, MethodInfo staticMethod)
+        public void RegisterFunction(string name, Action callback)
         {
-            Interpreter.RegisterFunction(name, staticMethod);
+            Interpreter.Globals[name] = callback;
         }
 
-        public void RegisterFunction(string name, object target, MethodInfo instanceMethod)
+        public void RegisterFunction(string name, Func<object?, object?> callback)
         {
-            Interpreter.RegisterFunction(name, target, instanceMethod);
+            Interpreter.Globals[name] = callback;
+        }
+
+        public void RegisterFunction(string name, Func<object?, object?, object?> callback)
+        {
+            Interpreter.Globals[name] = callback;
+        }
+
+        public void RegisterFunction(string name, Func<object?, object?, object?, object?> callback)
+        {
+            Interpreter.Globals[name] = callback;
+        }
+
+        public void RegisterFunction(string name, Func<object?, object?, object?, object?, object?> callback)
+        {
+            Interpreter.Globals[name] = callback;
         }
 
         public void CallWithTag(string tag)
@@ -345,7 +375,7 @@ namespace Popcron.LuaScript
 
         public void Dispose()
         {
-            Interpreter.Dispose();
+
         }
     }
 }

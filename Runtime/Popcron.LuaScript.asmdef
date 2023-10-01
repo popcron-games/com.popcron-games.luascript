@@ -1,3 +1,16 @@
 {
-	"name": "Popcron.LuaScript"
+    "name": "Popcron.LuaScript",
+    "rootNamespace": "",
+    "references": [
+        "GUID:04f413d9ccd888943a52959034d91dcc"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

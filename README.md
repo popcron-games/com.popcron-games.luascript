@@ -1,6 +1,8 @@
-## Dependencies
-- Requires [Nlua](https://github.com/NLua/Nlua), alternatively [this](https://github.com/popcron-games/com.nlua.nlua) Unity package repo for NLua
-- and `com.unity.nuget.newtonsoft-json` at least version 1.0.0 (Unity will take care of this one)
+![Alt text](image.png)
+# LuaScript
+### Dependencies
+- Includes [moonsharp](https://github.com/moonsharp-devs/moonsharp) for Unity
+- Depends on `com.unity.nuget.newtonsoft-json` package at least version 1.0.0
 
 ## LuaScript
 The object that contains NLua's `Lua` state object, also provides these:
@@ -104,3 +106,26 @@ Tags are an added feature available when scripting and to help setup custom APIs
         scriptsToGivePlayers.Add(script);
     }
     ```
+
+## Sample
+The included sample has a `CustomLuaComponent` to show how the included LuaComponent can be extended, in this case to implemented a new feature for exposing values to the inspector like so:
+```lua
+#Exposed color=playerColor
+#Exposed decimal=playerSpeed
+#Exposed integer=playerHealth
+
+#Awake
+function loadColor()
+    --do something here
+end
+```
+
+Types that are supported for this component
+* color
+* decimal
+* integer
+* boolean
+* text
+* vector2
+* vector3
+* asset

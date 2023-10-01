@@ -1,7 +1,7 @@
 {
   "name": "com.popcron-games.luascript",
   "displayName": "Popcron Lua Scripting",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "popcron",
     "url": "https://github.com/popcron-games/com.popcron-games.luascript"
@@ -9,5 +9,12 @@
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "1.0.0"
   },
-  "description": "Adds neater interfaces for working with NLua in Unity"
+  "samples": [
+    {
+      "displayName": "Sample scripts and #Exposed variables",
+      "description": "Shows extending the built-in LuaComponent to show entries in inspector for variables that will be inserted into the script. Also includes sample scripts.",
+      "path": "Samples~/Custom Lua Component"
+    }
+  ],
+  "description": "Simple interface to allow implementing Lua scripting in projects."
 }

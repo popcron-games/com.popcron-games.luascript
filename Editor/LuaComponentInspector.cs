@@ -1,4 +1,7 @@
+#nullable enable
+using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine;
 
 namespace Popcron.LuaScript
 {
@@ -8,6 +11,7 @@ namespace Popcron.LuaScript
         protected SerializedProperty mode;
         protected SerializedProperty text;
         protected SerializedProperty asset;
+        private bool shouldReload;
 
         protected virtual void OnEnable()
         {
@@ -18,6 +22,12 @@ namespace Popcron.LuaScript
 
         public override void OnInspectorGUI()
         {
+            if (shouldReload)
+            {
+                shouldReload = false;
+                ((LuaComponent)target).Reload();
+            }
+
             serializedObject.Update();
             EditorGUILayout.PropertyField(mode);
 
@@ -28,11 +38,33 @@ namespace Popcron.LuaScript
             }
             else if (sourceMode == LuaComponent.SourceMode.Asset)
             {
+                EditorGUI.BeginChangeCheck();
                 EditorGUILayout.PropertyField(asset);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    shouldReload = true;
+                }
             }
             else
             {
                 EditorGUILayout.LabelField("Unknown mode type");
+            }
+
+            LuaComponent component = (LuaComponent)target;
+            if (component.LuaScript is LuaScript luaScript)
+            {
+                foreach (KeyValuePair<string, HashSet<string>> pair in luaScript.TagsOfFunctions)
+                {
+                    string name = pair.Key;
+                    HashSet<string> tags = pair.Value;
+                    if (tags.Contains("Button"))
+                    {
+                        if (GUILayout.Button(name))
+                        {
+                            luaScript.Call(name);
+                        }
+                    }
+                }
             }
 
             serializedObject.ApplyModifiedProperties();
