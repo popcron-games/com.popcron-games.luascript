@@ -1,14 +1,15 @@
 ![Alt text](image.png)
 # LuaScript
+Provides an interface to interact with Lua as a package, with some extra extensions:
+- [LuaScript](https://github.com/popcron-games/com.popcron-games.luascript#luascript)
+- [LuaComponent](https://github.com/popcron-games/com.popcron-games.luascript#luacomponent)
+- [Tags](https://github.com/popcron-games/com.popcron-games.luascript#tags)
+
 ### Dependencies
 - Includes [moonsharp](https://github.com/moonsharp-devs/moonsharp) for Unity
 - Depends on `com.unity.nuget.newtonsoft-json` package at least version 1.0.0
 
 ## LuaScript
-Provides an interface to interact with Lua as a package, with some extra extensions
-- LuaComponent
-- 
-
 The main script that encapsulates moonsharp's state object provides these:
 - `TryGetFunction(name)` to get a function with the given name if it exists
 - `TryCall(name)` to try and call a function that may or may not exist
@@ -18,8 +19,8 @@ The main script that encapsulates moonsharp's state object provides these:
 - `CallWithTag(tag)` to call all functions with this tag
 - `Dispose()` to dispose the state object, should mirror the creation event (OnEnable/OnDisable, Awake/OnDestroy, etc)
 
-Example:
-Performing addition through a static C# method
+### Example
+Performing addition through a static C# method:
 ```cs
 int a = 1;
 int b = 4;
@@ -40,41 +41,6 @@ public static class API
         return a + b;
     }
 }
-```
-
-## LuaComponent
-![custom component](https://media.discordapp.net/attachments/860402958692122645/1144694349171531826/image.png)
-
-- A basic component that will call functions with these tags:
-  - Awake
-  - Start
-  - OnEnable
-  - OnDisable
-  - no Update or FixedUpdate
-- will have `transform` and `gameObject` accessible from scripts
-- will automatically reload itself when its asset changes in editor or literal text changes in either editor or build
-
-To extend functionality, inherit from `LuaComponent` and override `OnCreated()` to register your functions:
-```cs
-public class CustomLuaComponent : LuaComponent
-{
-    protected override void OnCreated()
-    {
-        BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
-        MethodInfo method = typeof(MyClass).GetMethod(nameof(Print), flags);
-        script.AddFunction("print", Print);
-    }
-
-    private void Print(object? message)
-    {
-        Debug.Log("lua> " + message, this);
-    }
-}
-```
-```lua
-function start()
-    print("hello " .. "world")
-end
 ```
 
 ## Tags
@@ -114,6 +80,42 @@ Tags are an added feature available when scripting and to help setup custom APIs
         scriptsToGivePlayers.Add(script);
     }
     ```
+
+## LuaComponent
+![custom component](https://media.discordapp.net/attachments/860402958692122645/1144694349171531826/image.png)
+
+- A basic component that will call functions with these tags:
+  - Awake
+  - Start
+  - OnEnable
+  - OnDisable
+  - no Update or FixedUpdate
+- will have `transform` and `gameObject` accessible from scripts
+- will automatically reload itself when its asset changes in editor or literal text changes in either editor or build
+
+### Example
+To extend functionality, inherit from `LuaComponent` and override `OnCreated()` to register your functions:
+```cs
+public class CustomLuaComponent : LuaComponent
+{
+    protected override void OnCreated()
+    {
+        BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+        MethodInfo method = typeof(MyClass).GetMethod(nameof(Print), flags);
+        script.AddFunction("print", Print);
+    }
+
+    private void Print(object? message)
+    {
+        Debug.Log("lua> " + message, this);
+    }
+}
+```
+```lua
+function start()
+    print("hello " .. "world")
+end
+```
 
 ## Included sample
 The included sample has a `CustomLuaComponent` to show how the base `LuaComponent` can be extended, in this case to implement a new feature for exposing values to the inspector. Its included as a sample rather than extra content because its implementation is not that performant on low end devices for realtime use, but would work well for event based uses.
