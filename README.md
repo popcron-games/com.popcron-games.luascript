@@ -5,16 +5,21 @@
 - Depends on `com.unity.nuget.newtonsoft-json` package at least version 1.0.0
 
 ## LuaScript
-The object that contains NLua's `Lua` state object, also provides these:
+Provides an interface to interact with Lua as a package, with some extra extensions
+- LuaComponent
+- 
+
+The main script that encapsulates moonsharp's state object provides these:
 - `TryGetFunction(name)` to get a function with the given name if it exists
 - `TryCall(name)` to try and call a function that may or may not exist
 - `GetObject(name)` to get a variable from Lua's global table in this script
 - `SetObject(name, value)` to add a value to the global table
 - `RegisterFunction(name, method)` to add a function to this script
 - `CallWithTag(tag)` to call all functions with this tag
-- `Dispose()` to dispose the `Lua` state object, usually in Unity's disable event
+- `Dispose()` to dispose the state object, should mirror the creation event (OnEnable/OnDisable, Awake/OnDestroy, etc)
 
 Example:
+Performing addition through a static C# method
 ```cs
 int a = 1;
 int b = 4;
@@ -25,12 +30,15 @@ Debug.Log(newScript.Call("abacus", a, b)); //advanced 1+1
 
 public static void RegisterFunctions(LuaScript script)
 {
-    script.RegisterFunction("mutate", typeof(MyClass).GetMethod(nameof(Mutate)));
+    script.RegisterFunction("mutate", typeof(API).GetMethod(nameof(Mutate)));
 }
 
-public static int Mutate(int a, int b) 
+public static class API
 {
-    return a + b;
+    public static int Mutate(int a, int b) 
+    {
+        return a + b;
+    }
 }
 ```
 
@@ -44,9 +52,9 @@ public static int Mutate(int a, int b)
   - OnDisable
   - no Update or FixedUpdate
 - will have `transform` and `gameObject` accessible from scripts
-- will automatically reload itself when its asset changes in editor or literal text changes in both editor and build
+- will automatically reload itself when its asset changes in editor or literal text changes in either editor or build
 
-To add extra functionality, inherit from `LuaComponent` and override `OnCreated()` to insert functions from C# with name and `MethodInfo` parameters:
+To extend functionality, inherit from `LuaComponent` and override `OnCreated()` to register your functions:
 ```cs
 public class CustomLuaComponent : LuaComponent
 {
@@ -59,7 +67,7 @@ public class CustomLuaComponent : LuaComponent
 
     private void Print(object? message)
     {
-        Debug.Log(message, this);
+        Debug.Log("lua> " + message, this);
     }
 }
 ```
@@ -107,8 +115,8 @@ Tags are an added feature available when scripting and to help setup custom APIs
     }
     ```
 
-## Sample
-The included sample has a `CustomLuaComponent` to show how the included LuaComponent can be extended, in this case to implemented a new feature for exposing values to the inspector like so:
+## Included sample
+The included sample has a `CustomLuaComponent` to show how the base `LuaComponent` can be extended, in this case to implement a new feature for exposing values to the inspector. Its included as a sample rather than extra content because its implementation is not that performant on low end devices for realtime use, but would work well for event based uses.
 ```lua
 #Exposed color=playerColor
 #Exposed decimal=playerSpeed
